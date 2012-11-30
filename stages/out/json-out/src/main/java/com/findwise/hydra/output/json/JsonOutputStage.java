@@ -9,12 +9,18 @@ import java.io.Writer;
 
 import com.findwise.hydra.common.Document.Action;
 import com.findwise.hydra.common.Logger;
+import com.findwise.hydra.common.SerializationUtils;
 import com.findwise.hydra.local.LocalDocument;
 import com.findwise.hydra.stage.AbstractOutputStage;
 import com.findwise.hydra.stage.Parameter;
 import com.findwise.hydra.stage.RequiredArgumentMissingException;
 import com.findwise.hydra.stage.Stage;
 
+/**
+ * 
+ * @author daniel.gomez
+ *
+ */
 @Stage(description="Writes documents to Solr")
 public class JsonOutputStage extends AbstractOutputStage {
 
@@ -32,13 +38,13 @@ public class JsonOutputStage extends AbstractOutputStage {
 		final Action action = doc.getAction();
 
 		try {
-		if (action == Action.ADD || action == Action.UPDATE) {
-			add(doc);
-		} else if (action == Action.DELETE) {
-			delete(doc);
-		} else{
-			failDocument(doc, new RequiredArgumentMissingException("action not set in document. This document would never be stored or deleted."));
-		}
+			if (action == Action.ADD || action == Action.UPDATE) {
+				add(doc);
+			} else if (action == Action.DELETE) {
+				delete(doc);
+			} else{
+				failDocument(doc, new RequiredArgumentMissingException("Action not set in document. This document would never be stored or deleted."));
+			}
 		} catch (IOException e) {
 			failDocument(doc, e);
 		} catch (RequiredArgumentMissingException e) {
@@ -49,6 +55,9 @@ public class JsonOutputStage extends AbstractOutputStage {
 	@Override
 	public void init() throws RequiredArgumentMissingException {
 		outputFolder = new File(getOutputPath());
+		if (!outputFolder.exists()){
+			throw new RequiredArgumentMissingException("Output folder does not exist.");
+		}
 		if (!outputFolder.isDirectory()){
 			throw new RequiredArgumentMissingException("Output folder name given is not a folder.");
 		}
@@ -58,10 +67,10 @@ public class JsonOutputStage extends AbstractOutputStage {
 	}
 	
 	private void add(LocalDocument doc) throws IOException, RequiredArgumentMissingException {
-		String jsonDocument = doc.toJson();
+		String jsonDocument = SerializationUtils.toJson(doc.getContentMap());
 		String documentId = getDocumentId(doc);
 		
-		File outputFile = new File(outputFolder.getAbsolutePath() + '/' + documentId);
+		File outputFile = new File(outputFolder.getAbsolutePath() + File.separator + documentId + ".json");
 		outputFile.createNewFile();
 		Writer out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile), "UTF8"));
 		out.append(jsonDocument);
@@ -74,7 +83,7 @@ public class JsonOutputStage extends AbstractOutputStage {
 	private void delete(LocalDocument doc) throws IOException, RequiredArgumentMissingException {
 		String documentId = getDocumentId(doc);
 		
-		File outputFile = new File(getOutputPath() + '/' + documentId);
+		File outputFile = new File(getOutputPath() + File.separator + documentId + ".json");
 		if (outputFile.exists()){
 			outputFile.delete();
 		}

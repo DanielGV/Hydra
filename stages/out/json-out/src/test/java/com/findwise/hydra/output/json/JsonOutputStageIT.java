@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.findwise.hydra.common.SerializationUtils;
 import com.findwise.hydra.common.Document.Action;
 import com.findwise.hydra.local.LocalDocument;
 import com.findwise.hydra.local.RemotePipeline;
@@ -33,7 +34,7 @@ public class JsonOutputStageIT {
 		jsonOutput = new JsonOutputStage();
 		mockRP = Mockito.mock(RemotePipeline.class);
 		
-		outFolderPath = System.getProperty("user.dir") + "/jsonOutputStageTest";
+		outFolderPath = System.getProperty("user.dir") + File.separator + "jsonOutputStageTest";
 		outFolder = new File(outFolderPath);
 		outFolder.mkdir();
 
@@ -41,16 +42,7 @@ public class JsonOutputStageIT {
 		jsonOutput.setOutputFolder(outFolder);
 		jsonOutput.setRemotePipeline(mockRP);
 		jsonOutput.setIdField("id");
-				
-		addDocument = new LocalDocument();
-		addDocument.setAction(Action.ADD);
-		addDocument.putContentField(jsonOutput.getIdField(), "document1");
-		addDocument.putContentField("field", "value");
 		
-		deleteDocument = new LocalDocument();
-		deleteDocument.setAction(Action.DELETE);
-		deleteDocument.putContentField(jsonOutput.getIdField(), "document1");
-		deleteDocument.putContentField("field", "value");
 	}
 
 	@After
@@ -69,7 +61,7 @@ public class JsonOutputStageIT {
 		doc.putContentField("name", "jonas");
 		doc.putContentField("id", "testAdd");
 		jsonOutput.output(doc);
-		assertTrue("The file has not been created", (new File(outFolderPath + '/' + "testAdd")).exists());
+		assertTrue("The file has not been created", (new File(outFolderPath + File.separator + "testAdd" + ".json")).exists());
 	}
 
 	@Test
@@ -79,16 +71,16 @@ public class JsonOutputStageIT {
 		doc.putContentField("name", "jonas");
 		doc.putContentField("id", "testDel");
 		jsonOutput.output(doc);
-		assertTrue("The file has not been created", (new File(outFolderPath + '/' + "testDel")).exists());
+		assertTrue("The file has not been created", (new File(outFolderPath + File.separator + "testDel" + ".json")).exists());
 		
 		doc.setAction(Action.DELETE);
 		doc.removeContentField("id");
 		jsonOutput.output(doc);
-		assertTrue("The file should not be deleted", (new File(outFolderPath + '/' + "testDel")).exists());
+		assertTrue("The file should not be deleted", (new File(outFolderPath + File.separator + "testDel" + ".json")).exists());
 		
 		doc.putContentField("id", "testDel");
 		jsonOutput.output(doc);
-		assertFalse("The file has not been created", (new File(outFolderPath + '/' + "testDel")).exists());
+		assertFalse("The file has not been created", (new File(outFolderPath + File.separator + "testDel" + ".json")).exists());
 	}
 	
 	@Test
@@ -98,15 +90,16 @@ public class JsonOutputStageIT {
 		doc.putContentField("name", "jonas");
 		doc.putContentField("id", "testAdd");
 		jsonOutput.output(doc);
-		File f = new File(outFolderPath + '/' + "testAdd");
+		File f = new File(outFolderPath + File.separator + "testAdd" + ".json");
 		assertTrue("The file has not been created", f.exists());
 		
 		BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(f), "UTF8")); 
-		String str = new String(), tmp;
+		StringBuilder str = new StringBuilder();
+		String tmp;
 		while ((tmp = in.readLine()) != null) {
-			str += tmp;
+			str.append(tmp);
 		}
-		assertEquals("The document contents do not match", doc.toJson(), str);
+		assertEquals("The document contents do not match", SerializationUtils.toJson(doc.getContentMap()), str.toString());
 		in.close();
 		
 	}
